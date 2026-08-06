@@ -14,7 +14,14 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-MEMORY_DIR = Path.home() / ".config" / "friday" / "memory"
+def _default_memory_dir():
+    env = os.environ.get("FRIDAY_MEMORY_DIR")
+    if env:
+        return Path(env).expanduser()
+    return Path.home() / ".config" / "friday" / "memory"
+
+
+MEMORY_DIR = _default_memory_dir()
 DATA_DIR = MEMORY_DIR / "data"
 FACTS_FILE = DATA_DIR / "facts.json"
 CONVERSATIONS_FILE = DATA_DIR / "conversations.json"
@@ -22,6 +29,7 @@ AUDIT_LOG = DATA_DIR / "audit.json"
 EMBEDDINGS_FILE = DATA_DIR / "embeddings.json"
 WORKING_MEMORY_FILE = DATA_DIR / "working_memory.json"
 TFIDF_CACHE_FILE = DATA_DIR / "tfidf_cache.json"
+HEALTHY_SNAPSHOT = DATA_DIR / "facts.json.healthy"
 
 _EMBEDDING_CACHE = None
 _WRITE_LOCK_DIR = None
@@ -125,8 +133,23 @@ def _load_json(path):
     return obj
 
 
-def _save_json(path, data):
+def _save_json(path, data, allow_empty=False):
     path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Guard: never write empty facts.json if disk has data (unless intentional)
+    if not allow_empty and path.name == 'facts.json' and not data:
+        if path.exists() and path.stat().st_size > 50:
+            panic_dir = path.parent / 'backups'
+            panic_dir.mkdir(exist_ok=True)
+            stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            bname = panic_dir / f'panic_{stamp}.json.backup'
+            try:
+                shutil.copy2(path, bname)
+            except:
+                pass
+            print(f"PANIC: refusing to write empty facts.json — backed up current state to {bname.name}", file=sys.stderr)
+            return
+
     backup_dir = path.parent / 'backups'
     if path.name == 'facts.json':
         backup_dir.mkdir(exist_ok=True)
@@ -137,15 +160,26 @@ def _save_json(path, data):
                 shutil.copy2(path, bpath)
         except: pass
         try:
-            backups = sorted([p for p in backup_dir.iterdir() if p.suffix == '.backup'])
+            backups = sorted([
+                p for p in backup_dir.iterdir()
+                if p.suffix == '.backup' and not p.name.startswith('panic_')
+            ])
             while len(backups) > 20:
                 backups[0].unlink()
                 backups.pop(0)
         except: pass
+
     tmp = path.with_suffix('.tmp')
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump({"schema_version": SCHEMA_VERSION, "items": data}, f, indent=2, ensure_ascii=False)
     tmp.replace(path)
+
+    # Keep a healthy snapshot after every successful write
+    if path.name == 'facts.json' and data:
+        try:
+            shutil.copy2(path, HEALTHY_SNAPSHOT)
+        except:
+            pass
 
 
 def _load_embeddings():
@@ -349,11 +383,14 @@ def _promote_working_memory(wm, facts, embeddings):
 def _get_embedder():
     global _EMBEDDER
     if _EMBEDDER is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            _EMBEDDER = SentenceTransformer('all-MiniLM-L6-v2')
-        except Exception:
+        if os.environ.get("FRIDAY_MEMORY_NO_EMBED"):
             _EMBEDDER = False
+        else:
+            try:
+                from sentence_transformers import SentenceTransformer
+                _EMBEDDER = SentenceTransformer('all-MiniLM-L6-v2')
+            except Exception:
+                _EMBEDDER = False
     return _EMBEDDER if _EMBEDDER is not False else None
 
 
@@ -590,6 +627,12 @@ def _filter_retrieval(items, include_archived=False, include_stale=False, includ
             continue
 
         if props.get('historical') and not include_historical:
+            continue
+
+        # Items without memory_properties (conversations, legacy flat facts)
+        # carry no confidence signal, so treat them as passing.
+        if not props:
+            filtered.append((0.0, item))
             continue
 
         confidence = props.get('confidence', 0.0)
@@ -1276,7 +1319,7 @@ def cmd_recall(args):
         query = f"{context} {query}"
 
     facts = _load_json(FACTS_FILE)
-    _apply_aging(facts)
+    aged = _apply_aging(facts)
     convs = _load_json(CONVERSATIONS_FILE)
 
     items = []
@@ -1396,7 +1439,8 @@ def cmd_recall(args):
 
     embeddings = _load_embeddings()
     promoted = _promote_working_memory(wm, facts, embeddings)
-    _save_json(FACTS_FILE, facts)
+    if aged or promoted:
+        _save_json(FACTS_FILE, facts)
     if promoted:
         _save_embeddings(embeddings)
         print(f"auto-promoted {promoted} topic(s) to draft facts")
@@ -1412,7 +1456,7 @@ def cmd_forget(args):
         matches = [d for d in data if d['id'] == args.id]
         data = [d for d in data if d['id'] != args.id]
         if len(data) != before:
-            _save_json(fp, data)
+            _save_json(fp, data, allow_empty=True)
             removed = True
             for m in matches:
                 _log_operation('deleted', f'forget command', [m['id']])
@@ -1437,13 +1481,14 @@ def cmd_list(args):
             if f.get('type') == 'identity' and f.get('memory_properties', {}).get('salience', {}).get('last_confirmed') is None:
                 f['memory_properties']['salience']['last_confirmed'] = _now()
                 migrated = True
+        display = facts
         if args.tag:
-            facts = [f for f in facts if args.tag in f.get('retrieval', {}).get('tags', []) or args.tag in f.get('tags', [])]
+            display = [f for f in facts if args.tag in f.get('retrieval', {}).get('tags', []) or args.tag in f.get('tags', [])]
         if not args.include_historical:
-            facts = [f for f in facts if not f.get('memory_properties', {}).get('historical')]
-        if facts:
-            print(f"facts ({len(facts)}):")
-            for f in facts:
+            display = [f for f in display if not f.get('memory_properties', {}).get('historical')]
+        if display:
+            print(f"facts ({len(display)}):")
+            for f in display:
                 if 'type' in f and 'summary' in f:
                     tags = f" [{', '.join(f['retrieval']['tags'])}]" if f.get('retrieval', {}).get('tags') else ""
                     obj_val = f.get('object', '')
@@ -1664,9 +1709,10 @@ def cmd_integrity(args):
     for oid in orphans:
         issues.append(f"[{oid}] orphan embedding (no matching fact)")
 
-    missing = _find_missing_embeddings(facts, embeddings)
-    for mid in missing:
-        issues.append(f"[{mid}] missing embedding")
+    if _get_embedder() is not None:
+        missing = _find_missing_embeddings(facts, embeddings)
+        for mid in missing:
+            issues.append(f"[{mid}] missing embedding")
 
     audit_orphans = _find_orphan_audit_entries(audit, fact_ids, conv_ids)
     for entry, sid in audit_orphans:
@@ -1678,7 +1724,7 @@ def cmd_integrity(args):
                 embeddings.pop(oid, None)
             _save_embeddings(embeddings)
 
-        if missing:
+        if _get_embedder() is not None and missing:
             for mid in missing:
                 f = next((x for x in facts if x['id'] == mid), None)
                 if f:
@@ -1714,11 +1760,31 @@ def cmd_integrity(args):
             _save_json(FACTS_FILE, facts)
             _log_operation('repaired', f'removed {removed_dups} duplicate fact(s)', [])
 
+        repaired_missing = len(missing) if _get_embedder() is not None else 0
         print(f"repair: removed {len(orphans)} orphan embedding(s), "
-              f"generated {len(missing)} missing embedding(s), "
+              f"generated {repaired_missing} missing embedding(s), "
               f"removed {len(bad)} orphan audit entry(s)")
         if removed_dups:
             print(f"repair: removed {removed_dups} duplicate fact id(s)")
+
+        issues = []
+        fact_ids = {f['id'] for f in facts}
+        for f in facts:
+            for e in _validate_fact(f):
+                issues.append(f"[{f.get('id','?')}] {e}")
+        dups = _find_duplicate_ids(facts)
+        for did in dups:
+            issues.append(f"[{did}] duplicate id found")
+        orphans = _find_orphan_embeddings(facts, embeddings)
+        for oid in orphans:
+            issues.append(f"[{oid}] orphan embedding (no matching fact)")
+        if _get_embedder() is not None:
+            missing = _find_missing_embeddings(facts, embeddings)
+            for mid in missing:
+                issues.append(f"[{mid}] missing embedding")
+        audit_orphans = _find_orphan_audit_entries(audit, fact_ids, conv_ids)
+        for entry, sid in audit_orphans:
+            issues.append(f"audit entry {entry.get('timestamp','?')[:10]} references non-existent id: {sid}")
 
     if not issues:
         print("integrity check passed — no issues found")
@@ -1808,6 +1874,7 @@ def cmd_restore(args):
 
 def main():
     parser = argparse.ArgumentParser(description='Friday memory system')
+    parser.add_argument('--data-dir', help='override the memory data directory (default: ~/.config/friday/memory, or $FRIDAY_MEMORY_DIR)')
     sub = parser.add_subparsers(dest='command')
 
     p = sub.add_parser('remember', help='save a fact (structured or quick)')
@@ -1876,6 +1943,19 @@ def main():
     p.add_argument('--list', action='store_true', help='list available backups')
 
     args = parser.parse_args()
+
+    if args.data_dir:
+        global MEMORY_DIR, DATA_DIR, FACTS_FILE, CONVERSATIONS_FILE, AUDIT_LOG, EMBEDDINGS_FILE, WORKING_MEMORY_FILE, TFIDF_CACHE_FILE, HEALTHY_SNAPSHOT
+        MEMORY_DIR = Path(args.data_dir).expanduser()
+        DATA_DIR = MEMORY_DIR / "data"
+        FACTS_FILE = DATA_DIR / "facts.json"
+        CONVERSATIONS_FILE = DATA_DIR / "conversations.json"
+        AUDIT_LOG = DATA_DIR / "audit.json"
+        EMBEDDINGS_FILE = DATA_DIR / "embeddings.json"
+        WORKING_MEMORY_FILE = DATA_DIR / "working_memory.json"
+        TFIDF_CACHE_FILE = DATA_DIR / "tfidf_cache.json"
+        HEALTHY_SNAPSHOT = DATA_DIR / "facts.json.healthy"
+
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     cmds = {

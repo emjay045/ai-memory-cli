@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "friday-memory"
+version = "1.0.0"
+description = "Hierarchical long-term memory for AI assistants: hybrid search, dedup, aging, conflict resolution, audit trails"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Matt Burke" }]
+keywords = ["memory", "ai", "llm", "semantic-search", "embeddings", "assistant", "rag"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "sentence-transformers>=2.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[project.scripts]
+friday-memory = "memory:main"
+
+[tool.setuptools]
+py-modules = ["memory"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
