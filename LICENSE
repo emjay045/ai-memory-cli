@@ -1,16 +1,28 @@
-MIT License
+# Friday Memory — License
 
-Copyright (c) 2026 emjay045
+Copyright (c) 2026 Matt Burke (emjay045)
+https://github.com/emjay045/ai-memory-cli
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+## You are free to:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+- Use, run, study, copy, modify, and share this software for any purpose — personal, educational, or non-commercial.
+- Build on it, remix it, and include it in your own projects.
+
+## Under these conditions:
+
+1. **Attribution — Give credit.** You must credit the original author — Matt Burke (emjay045) — in any distribution, public use, derivative work, or showcase. Include the original repository URL:
+   `https://github.com/emjay045/ai-memory-cli`
+   Do not remove or obscure the copyright notice from source files.
+
+2. **No selling it as your own.** You may not sell this software itself, or a modified version of it, as your own product. You may not re-license it and sell access to it. You may not claim you created it. Direct commercial resale of the library (or a thin wrapper around it) without prior written permission is prohibited.
+
+   What *is* allowed commercially: using Friday Memory *inside* a larger product, service, or research project you build. What is *not* allowed: selling Friday Memory itself (or a fork with minimal changes) for money or passing it off as your own creation.
+
+## Otherwise, do what you want.
+
+If you are unsure whether a commercial use is allowed, open an issue or contact the author — permission is often granted, credit is the only non-negotiable.
+
+## Disclaimer
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +31,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+In SPDX terms, this is a custom **Attribution + NonCommercial Resale Restriction** license. It is *not* OSI-approved MIT. For maximum compatibility it is closest to `CC-BY-NC-4.0` with a resale-clarity addendum. If you need a standard identifier for tooling, treat it as `LicenseRef-Friday-NC-Attribution`.

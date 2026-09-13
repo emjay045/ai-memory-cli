@@ -269,4 +269,4 @@ Searching is semantic: `recall "database performance problem"` can surface a mem
 
 ## License
 
-[MIT](LICENSE)
+[Custom — Attribution Required, No Resale as Your Own](LICENSE) — do what you want with it, but credit Matt Burke (emjay045) and don't sell it as your own. See `LICENSE` for full terms. Closest standard: `CC-BY-NC-4.0` with resale clarity.

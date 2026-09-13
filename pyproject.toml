@@ -8,12 +8,12 @@ version = "1.0.0"
 description = "Hierarchical long-term memory for AI assistants: hybrid search, dedup, aging, conflict resolution, audit trails"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = { text = "LicenseRef-Friday-NC-Attribution (Attribution + NonCommercial Resale Restriction, see LICENSE)" }
 authors = [{ name = "Matt Burke" }]
 keywords = ["memory", "ai", "llm", "semantic-search", "embeddings", "assistant", "rag"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "License :: Free for non-commercial use",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
