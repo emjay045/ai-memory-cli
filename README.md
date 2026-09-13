@@ -250,6 +250,12 @@ Searching is semantic: `recall "database performance problem"` can surface a mem
 
 **Next up:** Maybe add lemmatization to `_tokenize` so `running` finds `run`, and later a second project that's more linguistics-focused from scratch.
 
+## Known issues / TODO
+
+- `recall` ranking feels a bit off when confidence ties — might tweak recency weight again
+- `integrity repair` still a little noisy on fresh stores (false positives for missing embeddings)
+- Want to add a quick `friday-memory stats` command
+
 ## License
 
 [Custom — Attribution Required, No Resale as Your Own](LICENSE) — do what you want with it, but credit Matt Burke (emjay045) and don't sell it as your own. See `LICENSE` for full terms. Closest standard: `CC-BY-NC-4.0` with resale clarity.
