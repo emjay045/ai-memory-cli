@@ -1,9 +1,8 @@
-# Personal data
 data/
 backups/
 *.bak
 
-# Python
+
 __pycache__/
 .pytest_cache/
 *.py[cod]
@@ -13,14 +12,14 @@ __pycache__/
 dist/
 build/
 
-# Environment
+
 .env
 .venv
 venv/
 
-# OS
+
 .DS_Store
 Thumbs.db
 
-# Runtime
+
 *.json.bak
