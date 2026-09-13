@@ -1,19 +1,19 @@
 # ai-memory-cli
 
-A simple file-based memory I built for my AI assistant. Each fact is one entry — no database, no server, just JSON files. One Python file does the whole thing.
+A simple file-based memory I built for my AI assistant. Each fact is one entry, so no database, no server, just JSON files. One Python file does the whole thing.
 
-I call it Friday — that's what my assistant is named. The package is called `ai-memory-cli` so other people can use it too.
+I call it Friday; that's what my assistant is named. The package is called `ai-memory-cli` so other people can use it too.
 
 ## Why I built this
 
-Most memory stuff out there is overkill. It's either a whole server with a database and an SDK, or it just dumps your whole chat history into a blob and hopes for the best. Both felt dumb for a single user with one assistant.
+Most memory stuff out there is overkill, or data-sensitive. It's either a whole server with a database and an SDK, or it just dumps your whole chat history into a blob and hopes for the best. Both felt dumb for a single user with one assistant.
 
-So I made this instead. Every `remember` saves exactly one fact — subject, predicate, object, plus confidence and stuff. You can open the JSON and read it yourself. No magic. I got tired of the assistant forgetting things, and chat logs weren't cutting it — I wanted facts that actually get checked, merged, and cleaned up over time.
+So I made this instead. Every `remember` saves exactly one fact — subject, predicate, object, plus confidence and other things. You can open the JSON and read it yourself. I got tired of the assistant forgetting things, and chat logs weren't cutting it, I wanted facts that get checked, merged, and cleaned up over time.
 
 ## What it does
 
 - **Hybrid search** — TF-IDF plus `all-MiniLM-L6-v2` embeddings, plus recency and importance weighting. Either one alone misses stuff, together they actually work.
-- **Structured facts** — every fact has a type, subject/predicate/object, tags, confidence, stability. Not just a blob of text.
+- **Structured facts** — every fact has a type, subject/predicate/object, tags, confidence, stability. Not just random text.
 - **Dedup** — checks exact match, then semantic similarity (cosine >= 0.75), then fuzzy fallback. If it's the same thing, it merges instead of duplicating.
 - **Aging** — old unused facts slowly lose confidence and eventually archive themselves so the store doesn't fill with junk.
 - **Conflict handling** — if two facts contradict on the same (subject, predicate), it picks one and archives/supersedes the other instead of letting both sit there.
@@ -160,7 +160,7 @@ On `remember` it checks:
 2. **Semantic** — embedding cosine >= 0.75
 3. **Fuzzy** — Jaccard >= 0.80 if embeddings aren't available
 
-If it matches, it merges instead of making a copy — bumps confidence, merges tags, maybe promotes stability.
+If it matches, it merges instead of making a copy, it bumps confidence, merges tags, maybe promotes stability.
 
 ### Conflict resolution
 
