@@ -46,15 +46,15 @@ The first search will download the `all-MiniLM-L6-v2` model (~80 MB). Everything
 
 ```bash
 # save a fact (structured)
-python memory.py remember "emjay prefers dark mode in his editor" \
-  --type preference --subject emjay --predicate prefers --object "dark mode" \
+python memory.py remember "Alex prefers dark mode" \
+  --type preference --subject Alex --predicate prefers --object "dark mode" \
   --tags "editor,preference" --confidence 0.9 --stability stable
 
 # save a fact (quick - positional text maps to summary)
-python memory.py remember "emjay uses VS Code for web dev" --tags editor
+python memory.py remember "Alex uses VS Code for web dev" --tags editor
 
 # search - hybrid TF-IDF + semantic
-python memory.py recall "what editor does emjay use?"
+python memory.py recall "what editor does Alex use?"
 
 # delete
 python memory.py forget fact_1785712143053376700
@@ -69,20 +69,20 @@ python memory.py list
 ### What you'll see
 
 ```text
-$ python memory.py remember "emjay prefers dark mode in his editor" --type preference --subject emjay --predicate prefers --object "dark mode" --tags "editor,preference" --confidence 0.9 --stability stable
+$ python memory.py remember "Alex prefers dark mode" --type preference --subject Alex --predicate prefers --object "dark mode" --tags "editor,preference" --confidence 0.9 --stability stable
 saved fact [fact_1785712143053376700]
 
-$ python memory.py remember "emjay uses VS Code for web dev" --type preference --subject emjay --predicate uses --object "VS Code" --tags editor
+$ python memory.py remember "Alex uses VS Code for web dev" --type preference --subject Alex --predicate uses --object "VS Code" --tags editor
 saved fact [fact_1785712163249380000]
 
-$ python memory.py recall "what editor does emjay use?"
-1. [preference] emjay prefers dark mode in his editor [editor, preference]
-   [emjay prefers dark mode]
+$ python memory.py recall "what editor does Alex use?"
+1. [preference] Alex prefers dark mode [editor, preference]
+   [Alex prefers dark mode]
    (preference, stable, conf:0.9, imp:0.01, retr:1x)
    id: fact_1785712143053376700  (2026-08-02)
 
-2. [preference] emjay uses VS Code for web dev [editor]
-   [emjay uses VS Code]
+2. [preference] Alex uses VS Code for web dev [editor]
+   [Alex uses VS Code]
    (preference, temporary, conf:0.5, imp:0.01, retr:1x)
    id: fact_1785712163249380000  (2026-08-02)
 ```
@@ -114,10 +114,10 @@ All files are plain JSON:
   "id": "fact_1785712143053376700",
   "type": "preference",
   "category": "",
-  "subject": "emjay",
+  "subject": "Alex",
   "predicate": "prefers",
   "object": "dark mode",
-  "summary": "emjay prefers dark mode in his editor",
+  "summary": "Alex prefers dark mode",
   "details": {},
   "source": {
     "origin": "conversation",
