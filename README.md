@@ -248,6 +248,8 @@ Searching is semantic: `recall "database performance problem"` can surface a mem
 
 **Things I ran into:** Windows file locking is annoying — `mkdir` as a lock was the only thing that was actually atomic. Added panic protection in `_save_json` after I almost wiped `facts.json` to 0 bytes during a power cut. Also learned that confidence needs to be in the score, not just a filter — otherwise a permanent 0.9 and a temporary 0.9 look the same.
 
+**How I worked:** I built the schema, search, dedup, and aging myself — used autocomplete/AI for boilerplate and to rubber-duck ideas, same as I'd use Stack Overflow. I debugged the file lock and panic guard myself.
+
 **Next up:** Maybe add lemmatization to `_tokenize` so `running` finds `run`, and later a second project that's more linguistics-focused from scratch.
 
 ## Known issues / TODO
