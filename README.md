@@ -1,38 +1,27 @@
-# ai-memory-cli - An AI Memory System
+# ai-memory-cli
 
-**Atomic, file-based long-term memory for AI assistants. One fact, one entry. No database, no daemon, no cloud.**
+A simple file-based memory I built for my AI assistant. Each fact is one entry — no database, no server, just JSON files. One Python file does the whole thing.
 
-A hierarchical long-term memory system for AI assistants. Structured facts with hybrid TF-IDF + semantic search, automatic deduplication, memory aging, conflict resolution, and a full audit trail. Zero database. One file. Pure Python.
+I call it Friday — that's what my assistant is named. The package is called `ai-memory-cli` so other people can use it too.
 
-*Friday* is what I (the author) personally call it; the project name is `ai-memory-cli`. Either works.
+## Why I built this
 
-## Why this exists
+Most memory stuff out there is overkill. It's either a whole server with a database and an SDK, or it just dumps your whole chat history into a blob and hopes for the best. Both felt dumb for a single user with one assistant.
 
-Most memory systems do two things differently:
+So I made this instead. Every `remember` saves exactly one fact — subject, predicate, object, plus confidence and stuff. You can open the JSON and read it yourself. No magic. I got tired of the assistant forgetting things, and chat logs weren't cutting it — I wanted facts that actually get checked, merged, and cleaned up over time.
 
-- **They are servers.** A daemon, a port, a database, hooks, an SDK, a cloud. For a single user with a single assistant, that is a lot of machinery to remember what color your editor theme is.
-- **They store blobs.** Entire sessions get captured and distilled later, which means facts are fuzzy, redundant, and hard to audit.
+## What it does
 
-Friday Memory is the opposite: explicit, atomic, and self-contained. Each `remember` call creates exactly one fact. Each fact has a subject, predicate, object, confidence, stability, origin, and a full lineage. You can read the entire memory store with a text editor.
-
-It is the lightweight alternative to memory servers that turn "remember what I said" into a distributed system.
-
-## Why
-
-LLMs forget everything between sessions. Most "memory" solutions are bolted-on chat logs or vector stores that grow without structure. Friday Memory treats assistant memory like a real system: every fact is typed, scored for confidence, decayed over time, deduplicated, and reconciled when it contradicts what came before. The result is a memory that gets *more* reliable the longer it runs.
-
-## Features
-
-- **Hybrid search** - TF-IDF and `all-MiniLM-L6-v2` semantic embeddings, weighted and combined with recency + importance
-- **Structured schema** - typed facts (preference, project, identity, goal...) with subject/predicate/object, tags, confidence, stability
-- **Deduplication** - exact match, semantic similarity (cosine >= 0.75), and fuzzy Jaccard fallback
-- **Memory aging** - confidence decays over time; stale, unreferenced facts archive themselves
-- **Conflict resolution** - contradictions are merged, archived, or superseded, never silently coexisting
-- **Audit trail** - every create/merge/archive/delete logged with reasons, inspectable via `lineage`
-- **Working memory** - session-scoped context with topic decay and promotion to long-term facts
-- **Write safety** - file locking, atomic writes, automatic backups, panic protection against empty writes
-- **Data integrity** - `integrity check` / `integrity repair` finds orphan embeddings, duplicate ids, and broken audit refs
-- **Portable** - `--data-dir` or `FRIDAY_MEMORY_DIR` to point the store anywhere
+- **Hybrid search** — TF-IDF plus `all-MiniLM-L6-v2` embeddings, plus recency and importance weighting. Either one alone misses stuff, together they actually work.
+- **Structured facts** — every fact has a type, subject/predicate/object, tags, confidence, stability. Not just a blob of text.
+- **Dedup** — checks exact match, then semantic similarity (cosine >= 0.75), then fuzzy fallback. If it's the same thing, it merges instead of duplicating.
+- **Aging** — old unused facts slowly lose confidence and eventually archive themselves so the store doesn't fill with junk.
+- **Conflict handling** — if two facts contradict on the same (subject, predicate), it picks one and archives/supersedes the other instead of letting both sit there.
+- **Audit trail** — every change gets logged with a reason, you can run `lineage` on any fact and see where it came from.
+- **Working memory** — short-term context for what you're doing right now, decays if you stop mentioning it.
+- **Write safety** — file locking, atomic writes, backups, and a panic guard so it never wipes your store to an empty file.
+- **Integrity checks** — `integrity check` / `repair` catches orphan embeddings, duplicate IDs, broken links.
+- **Portable** — point it anywhere with `--data-dir` or `FRIDAY_MEMORY_DIR`, everything's just JSON.
 
 ## Install
 
@@ -162,58 +151,52 @@ Facts climb from `temporary` to `permanent` as they get confirmed:
 
 ### Search scoring
 
-`score = TF-IDF(0.25) + semantic(0.55) + recency(0.15) + importance(0.05)`, then multiplied by a confidence factor `(0.5 + conf * 0.5)`. Recency uses a 90-day exponential decay.
+I score with `TF-IDF*0.25 + semantic*0.55 + recency*0.15 + importance*0.05`, then scale by confidence `(0.5 + conf*0.5)`. Recency is a 90-day decay so old stuff naturally sinks.
 
 ### Deduplication
 
-On `remember`, duplicates are resolved in order:
-1. **Exact** - same `(subject, predicate, object)`
-2. **Semantic** - embedding cosine >= 0.75
-3. **Fuzzy** - Jaccard token similarity >= 0.80 (only when no embeddings available)
+On `remember` it checks:
+1. **Exact** — same `(subject, predicate, object)`
+2. **Semantic** — embedding cosine >= 0.75
+3. **Fuzzy** — Jaccard >= 0.80 if embeddings aren't available
 
-Duplicates **merge**: confidence bumps, tags union, stability promotes. The audit log records every merge.
+If it matches, it merges instead of making a copy — bumps confidence, merges tags, maybe promotes stability.
 
 ### Conflict resolution
 
-Contradictory facts on the same `(subject, predicate)` can't coexist. The system picks a resolution by strength (confidence + origin + stability):
-
-- **merged** - one subsumes the other
-- **archived** - weaker inferred fact is archived
-- **rejected** - incoming inferred fact is refused
-- **superseded** - preference evolution; the old fact is marked `historical` with a `superseded_by` pointer
+You can't have two different facts for the same `(subject, predicate)`. It compares strength (confidence + origin + stability) and either merges, archives the weaker inferred one, rejects the new one, or marks the old one as `historical` with a `superseded_by` pointer.
 
 ### Aging
 
-Temporary/evolving facts decay 0.2% confidence per day (scaled by retrieval frequency). Unreferenced temporary facts archive at 90 days; any non-permanent fact with `update_count <= 1` archives at 365 days. Identity facts decay only when unconfirmed for 60+ days.
+Temporary/evolving facts lose 0.2% per day (slower if you retrieve them a lot). Unconfirmed temporary stuff archives at 90 days, anything with `update_count <= 1` at 365 days. Identity facts only decay if unconfirmed for 60+ days.
 
 ## What makes it different
 
-### Atomic facts, not blobs
-One concept = one entry. A fact is a first-class object with typed fields, not a paragraph your assistant may or may not parse correctly. Plural facts (`user has 3 dogs`) coexist correctly with singular ones; contradictory facts are resolved, never silently stacked.
+### One fact = one entry
+Not a big chat dump. Each fact is its own thing with fields, so stuff like `user has 3 dogs` doesn't get confused with singular/plural stuff, and contradictions actually get handled instead of just stacking.
 
-### A real lifecycle
-- **Confidence** decays 0.2%/day for temporary and evolving facts. Stale facts are deprioritized at 180 days, archived at 365.
-- **Promotion**: a fact confirmed enough times upgrades temporary → evolving → stable → permanent. Nothing stays a guess forever, and nothing gets to claim permanence without evidence.
-- **Quarantine** exists for low-quality or contradictory inputs before they pollute the store.
-- **Conflict resolution**: contradictions on the same `(subject, predicate)` are merged, archived, or downgraded. No silent coexistence.
+### It ages like real memory
+- Temporary/evolving facts lose like 0.2% confidence per day. Old stuff gets pushed down at 180 days, archived at 365 if nobody confirmed it.
+- If you confirm a fact enough times it levels up: temporary → evolving → stable → permanent. Nothing stays permanent unless it earned it.
+- Low-quality or conflicting stuff goes to quarantine first so it doesn't mess up the main store.
 
-### Everything is audited
-Every create, update, merge, archive, and delete is logged with a reason and source IDs. `lineage` shows the full history of a single fact. You can prove where any belief came from.
+### Everything is logged
+Every create/update/merge/archive/delete writes to the audit log with why it happened. `lineage <id>` shows you the whole history for one fact.
 
-### Dedup that actually works
-`remember` checks, in order: exact `(subject, predicate, object)` match, semantic cosine >= 0.75, and Jaccard >= 0.80. A match means **merge**, never a second copy. Confidence bumps, tags union, stability promotes.
+### Dedup actually works
+Checks exact `(subject, predicate, object)`, then semantic cosine >= 0.75, then Jaccard >= 0.80. If it matches, it merges — bumps confidence, unions tags, promotes stability. No duplicates.
 
-### Working memory, not just long-term
-`focus` maintains a separate active-context layer: topics you're actively working on, which decay when ignored and promote into long-term facts when they stick. Useful for assistants that need to know what you're doing *right now* without polluting the permanent store.
+### Working memory vs long-term
+`focus` keeps a short-term layer for what you're doing right now. It decays if you ignore it, and if you keep mentioning the same topic it can promote into long-term facts.
 
-### Own your data
-Everything lives in `~/.config/friday/memory/data/`:
-- `facts.json` — the memory store
-- `conversations.json` — session summaries (separate from facts, by design)
-- `audit.json` — every mutation
-- `embeddings.json`, `tfidf_cache.json` — retrieval caches
+### Your data stays yours
+Everything is in `~/.config/friday/memory/data/`:
+- `facts.json` — the actual memories
+- `conversations.json` — chat summaries (kept separate on purpose)
+- `audit.json` — the log
+- `embeddings.json`, `tfidf_cache.json` — just caches
 
-Copy the folder, and the assistant's memory moves with it. No export API needed.
+Copy the folder and you move the whole memory. No export needed.
 
 ## CLI reference
 
@@ -249,23 +232,23 @@ Searching is semantic: `recall "database performance problem"` can surface a mem
 - Python 3.10+
 - `sentence-transformers` (see `requirements.txt`; model downloads on first `warm`/`recall`)
 
-## Design notes / tradeoffs
+## Notes
 
-- **Single-user by design.** The write lock is file-based and short-lived. If you need multi-process concurrent writes at scale, this is not the tool.
-- **Inferred facts are capped.** Anything derived rather than stated starts at confidence <= 0.69 and can never promote without explicit user confirmation. The system does not let guesses masquerade as facts.
-- **Privacy-first.** No telemetry, no cloud, no network calls beyond the model download.
+- Single-user setup. The write lock is just a folder lock — fine for one person, wouldn't scale to a ton of writers at once.
+- Inferred facts are capped at 0.69. If the system guesses something, it can't pretend it's a fact until you confirm it.
+- No telemetry, no cloud, no phone-home stuff. Model downloads once, then it's local.
 
-## Architecture & Decisions
+## How I built it
 
-**Why JSON files, not SQLite:** Portability and auditability beat query speed at this scale (<10k facts). Every file is human-readable, `git diff`-able, and moves by copying a folder. If the store ever exceeds 50k facts, SQLite would win on indexing — documented here as the migration path.
+**Why JSON instead of SQLite:** At this size (<10k facts) being able to read the files and `git diff` them matters more than raw speed. You can just copy the folder to move everything. If it ever got to 50k+ I'd switch to SQLite for indexing — left that as a future path.
 
-**Why hybrid TF-IDF + embeddings, not pure vectors:** TF-IDF is free, deterministic, and handles exact terms (IDs, codes) where embeddings blur. Embeddings handle paraphrase. Weighted 0.25/0.55 gives both a voice, verified by `tests/test_memory.py:79 fuzzy_duplicate_merges` passing in TF-IDF-only mode (`FRIDAY_MEMORY_NO_EMBED=1`).
+**Why both TF-IDF and embeddings:** TF-IDF is free and exact (good for IDs, codes), embeddings get paraphrases. Using both weighted 0.25/0.55 worked best — tested with `FRIDAY_MEMORY_NO_EMBED=1` mode and the fuzzy dedup tests still pass.
 
-**Why atomic facts:** One fact = one lifecycle. Blobs make aging and conflict resolution impossible — you cannot decay half a paragraph. The schema `type/subject/predicate/object` in `memory.py:1183` enforces this.
+**Why atomic facts:** One fact = one lifecycle. If you store blobs you can't decay half of it or handle conflicts cleanly. The `type/subject/predicate/object` shape in `memory.py` keeps it strict.
 
-**What I learned:** File locking on Windows (`_write_lock:102`) is racy without `mkdir` atomicity; panic protection (`_save_json:140`) prevented a zero-byte `facts.json` loss during a power cut. Confidence as part of score (`memory.py:596`) matters more than as filter — a `permanent` 0.9 fact must outrank a `temporary` 0.9-looking match.
+**Things I ran into:** Windows file locking is annoying — `mkdir` as a lock was the only thing that was actually atomic. Added panic protection in `_save_json` after I almost wiped `facts.json` to 0 bytes during a power cut. Also learned that confidence needs to be in the score, not just a filter — otherwise a permanent 0.9 and a temporary 0.9 look the same.
 
-**Next:** Add lemmatization to `_tokenize:402` for better recall, then a second project that is explicitly CompLing (tokenizer from scratch) to show progression `math → software → linguistics → NLP`.
+**Next up:** Maybe add lemmatization to `_tokenize` so `running` finds `run`, and later a second project that's more linguistics-focused from scratch.
 
 ## License
 

@@ -3,35 +3,25 @@
 Copyright (c) 2026 Matt Burke (emjay045)
 https://github.com/emjay045/ai-memory-cli
 
-## You are free to:
+Do what you want with this — use it, change it, share it, build stuff with it.
+Just give me credit and don't sell it as if you made it.
 
-- Use, run, study, copy, modify, and share this software for any purpose — personal, educational, or non-commercial.
-- Build on it, remix it, and include it in your own projects.
+### Rules
 
-## Under these conditions:
-
-1. **Attribution — Give credit.** You must credit the original author — Matt Burke (emjay045) — in any distribution, public use, derivative work, or showcase. Include the original repository URL:
+1. **Credit me.** If you share it, post about it, or use it in something public, say it was originally made by Matt Burke (emjay045) and link back to:
    `https://github.com/emjay045/ai-memory-cli`
-   Do not remove or obscure the copyright notice from source files.
+   Don't strip the copyright notice out of the files.
 
-2. **No selling it as your own.** You may not sell this software itself, or a modified version of it, as your own product. You may not re-license it and sell access to it. You may not claim you created it. Direct commercial resale of the library (or a thin wrapper around it) without prior written permission is prohibited.
+2. **Don't resell it as yours.** You can't take this (or a tiny fork of it) and sell it as your own product, or re-license it and charge for access. Claiming you built it is not cool.
 
-   What *is* allowed commercially: using Friday Memory *inside* a larger product, service, or research project you build. What is *not* allowed: selling Friday Memory itself (or a fork with minimal changes) for money or passing it off as your own creation.
+   Using it *inside* something bigger you made is totally fine — like an app or a project that happens to use this for memory. Selling *the library itself* is not.
 
-## Otherwise, do what you want.
+If you're not sure whether something counts as okay, just ask — I'm pretty chill about it, credit is the only thing I really care about.
 
-If you are unsure whether a commercial use is allowed, open an issue or contact the author — permission is often granted, credit is the only non-negotiable.
+### No warranty
 
-## Disclaimer
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+This is provided as-is, no guarantees. I'm not liable if something breaks or doesn't work how you expected. Use at your own risk.
 
 ---
 
-In SPDX terms, this is a custom **Attribution + NonCommercial Resale Restriction** license. It is *not* OSI-approved MIT. For maximum compatibility it is closest to `CC-BY-NC-4.0` with a resale-clarity addendum. If you need a standard identifier for tooling, treat it as `LicenseRef-Friday-NC-Attribution`.
+If tooling needs an identifier, treat this as `LicenseRef-Friday-NC-Attribution`. Closest standard license is `CC-BY-NC-4.0` but with the resale bit clarified above.
