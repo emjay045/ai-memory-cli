@@ -145,7 +145,7 @@ def _save_json(path, data, allow_empty=False):
             bname = panic_dir / f'panic_{stamp}.json.backup'
             try:
                 shutil.copy2(path, bname)
-            except:
+            except OSError:
                 pass
             print(f"PANIC: refusing to write empty facts.json — backed up current state to {bname.name}", file=sys.stderr)
             return
@@ -158,7 +158,8 @@ def _save_json(path, data, allow_empty=False):
         try:
             if path.exists():
                 shutil.copy2(path, bpath)
-        except: pass
+        except OSError:
+            pass
         try:
             backups = sorted([
                 p for p in backup_dir.iterdir()
@@ -167,7 +168,8 @@ def _save_json(path, data, allow_empty=False):
             while len(backups) > 20:
                 backups[0].unlink()
                 backups.pop(0)
-        except: pass
+        except OSError:
+            pass
 
     tmp = path.with_suffix('.tmp')
     with open(tmp, 'w', encoding='utf-8') as f:
@@ -178,7 +180,7 @@ def _save_json(path, data, allow_empty=False):
     if path.name == 'facts.json' and data:
         try:
             shutil.copy2(path, HEALTHY_SNAPSHOT)
-        except:
+        except OSError:
             pass
 
 
