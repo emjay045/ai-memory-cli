@@ -223,7 +223,7 @@ def _delete_embedding(fact_id):
     _save_embeddings(store)
 
 
-# --- working memory: what's on the table right now, session-scoped ---
+# --- working memory: session-scoped ---
 
 SESSION_IDLE_MINUTES = 30
 
@@ -830,7 +830,7 @@ def _resolve_conflict(incoming, facts):
     return None, None, None
 
 
-# salience = how much a fact actually matters, separate from raw importance.
+# salience is how much a fact actually matters, separate from raw importance.
 # not every stored fact is equally worth surfacing.
 
 def _init_salience(props, importance):
